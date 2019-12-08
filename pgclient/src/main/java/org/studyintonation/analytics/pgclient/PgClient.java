@@ -9,12 +9,15 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static io.r2dbc.spi.ConnectionFactoryOptions.HOST;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PASSWORD;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PORT;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PROTOCOL;
+import static io.r2dbc.spi.ConnectionFactoryOptions.SSL;
 import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
 
 public final class PgClient {
@@ -22,11 +25,32 @@ public final class PgClient {
     private final ConnectionPool pool;
 
     public PgClient(@NotNull final Config config) {
-        final var host = config.getString("host");
-        final var port = config.getInt("port");
-        final var user = config.getString("user");
-        final var pass = config.getString("password");
-        final var database = config.getString("database");
+        String host;
+        int port;
+        String user;
+        String pass;
+        String database;
+        boolean enableSsl;
+
+        try {
+            /// Heroku-postgres
+            final var rawUrl = System.getenv("DATABASE_URL");
+            final var dbUri = new URI(rawUrl);
+
+            host = dbUri.getHost();
+            port = dbUri.getPort();
+            user = dbUri.getUserInfo().split(":")[0];
+            pass = dbUri.getUserInfo().split(":")[1];
+            database = dbUri.getPath();
+            enableSsl = true;
+        } catch (Exception e) {
+            host = config.getString("host");
+            port = config.getInt("port");
+            user = config.getString("user");
+            pass = config.getString("password");
+            database = config.getString("database");
+            enableSsl = false;
+        }
 
         final var poolMaxIdleTime = config.getDuration("pool.maxIdleTimeMillis");
         final var poolMaxSize = config.getInt("pool.maxSize");
@@ -39,6 +63,7 @@ public final class PgClient {
                 .option(USER, user)
                 .option(PASSWORD, pass)
                 .option(DATABASE, database)
+                .option(SSL, enableSsl)
                 .build());
 
         final var poolConfiguration = ConnectionPoolConfiguration.builder(connectionFactory)
