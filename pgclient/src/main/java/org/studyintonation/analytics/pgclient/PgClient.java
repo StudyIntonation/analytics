@@ -6,6 +6,7 @@ import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.postgresql.codec.Json;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactoryOptions;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
@@ -20,6 +21,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.PROTOCOL;
 import static io.r2dbc.spi.ConnectionFactoryOptions.SSL;
 import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
 
+@Slf4j
 public final class PgClient {
     @NotNull
     private final ConnectionPool pool;
@@ -44,6 +46,8 @@ public final class PgClient {
             database = dbUri.getPath();
             enableSsl = true;
         } catch (Exception e) {
+            log.info("Failed to parse heroku postgres url", e);
+
             host = config.getString("host");
             port = config.getInt("port");
             user = config.getString("user");
