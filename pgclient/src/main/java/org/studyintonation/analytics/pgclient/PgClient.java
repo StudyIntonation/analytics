@@ -18,7 +18,6 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.HOST;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PASSWORD;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PORT;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PROTOCOL;
-import static io.r2dbc.spi.ConnectionFactoryOptions.SSL;
 import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
 
 @Slf4j
@@ -32,7 +31,6 @@ public final class PgClient {
         String user;
         String pass;
         String database;
-        boolean enableSsl;
 
         try {
             /// Heroku-postgres
