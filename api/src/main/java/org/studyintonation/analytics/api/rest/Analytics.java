@@ -67,6 +67,7 @@ public final class Analytics implements Api {
             private final int sampleRate;
         }
 
+        @NotNull
         @Override
         public SendAttemptReportRequest validate() {
             return (SendAttemptReportRequest) Request.super.validate();

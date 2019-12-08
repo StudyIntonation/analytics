@@ -41,7 +41,6 @@ public final class Auth implements Api {
     private static final class RegisterRequest implements Request {
         @Nullable
         private final Gender gender;
-        @Nullable
         private final int age;
         @Nullable
         private final Locale firstLanguage;
