@@ -44,7 +44,6 @@ public final class PgClient {
             user = dbUri.getUserInfo().split(":")[0];
             pass = dbUri.getUserInfo().split(":")[1];
             database = dbUri.getPath();
-            enableSsl = true;
         } catch (Exception e) {
             log.info("Failed to parse heroku postgres url", e);
 
@@ -53,7 +52,6 @@ public final class PgClient {
             user = config.getString("user");
             pass = config.getString("password");
             database = config.getString("database");
-            enableSsl = false;
         }
 
         final var poolMaxIdleTime = config.getDuration("pool.maxIdleTimeMillis");
@@ -67,7 +65,6 @@ public final class PgClient {
                 .option(USER, user)
                 .option(PASSWORD, pass)
                 .option(DATABASE, database)
-                .option(SSL, enableSsl)
                 .build());
 
         final var poolConfiguration = ConnectionPoolConfiguration.builder(connectionFactory)
