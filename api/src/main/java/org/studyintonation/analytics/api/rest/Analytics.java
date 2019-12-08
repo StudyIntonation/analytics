@@ -5,40 +5,37 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.studyintonation.analytics.pgclient.PgClient;
 import reactor.core.publisher.Mono;
 
+import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.springframework.http.HttpStatus.ACCEPTED;
 
 @RestController
-@RequestMapping("/analytics")
+@RequestMapping("/v0/analytics")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public final class Analytics implements Api {
     @NotNull
     private final PgClient pgClient;
 
-    @PostMapping("/sendAttemptReport")
+    @PostMapping(path = "/sendAttemptReport", consumes = APPLICATION_JSON, produces = APPLICATION_JSON)
     @ResponseStatus(ACCEPTED)
     @NotNull
-    public Mono<? extends Response> sendAttemptReport(@NotNull final Mono<SendAttemptReportRequest> body) {
+    public Mono<? extends Response> sendAttemptReport(@RequestBody @NotNull final Mono<SendAttemptReportRequest> body) {
         return body
-                .map(it -> {
-                    if (it.isValid()) {
-                        return it;
-                    }
-
-                    throw Request.InvalidError.instance();
-                })
+                .map(SendAttemptReportRequest::validate)
                 .flatMap(request -> pgClient
                         .addUserAttemptReport(
                                 request.uid,
                                 request.cid,
                                 request.lid,
                                 request.tid,
-                                request.pitchSamples,
+                                request.rawPitch,
+                                request.rawSampleRate,
                                 request.dtw
                         )
                 )
@@ -48,8 +45,7 @@ public final class Analytics implements Api {
 
     @RequiredArgsConstructor
     private static final class SendAttemptReportRequest implements Request {
-        @Nullable
-        private final String uid;
+        private final long uid;
         @Nullable
         private final String cid;
         @Nullable
@@ -57,8 +53,14 @@ public final class Analytics implements Api {
         @Nullable
         private final String tid;
         @Nullable
-        private final float[] pitchSamples;
+        private final Float[] rawPitch;
+        private final int rawSampleRate;
         private final float dtw;
+
+        @Override
+        public SendAttemptReportRequest validate() {
+            return (SendAttemptReportRequest) Request.super.validate();
+        }
     }
 
     @RequiredArgsConstructor

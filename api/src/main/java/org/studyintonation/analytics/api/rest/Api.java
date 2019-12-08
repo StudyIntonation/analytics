@@ -2,6 +2,7 @@ package org.studyintonation.analytics.api.rest;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -35,6 +36,15 @@ public interface Api {
                 }
             }
             return true;
+        }
+
+        @NotNull
+        default Request validate() {
+            if (isValid()) {
+                return this;
+            }
+
+            throw InvalidError.instance();
         }
 
         final class InvalidError extends RuntimeException {

@@ -8,8 +8,6 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
-import java.util.Locale;
-
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static io.r2dbc.spi.ConnectionFactoryOptions.HOST;
@@ -17,7 +15,6 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.PASSWORD;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PORT;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PROTOCOL;
 import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
-
 
 public final class PgClient {
     @NotNull
@@ -51,19 +48,47 @@ public final class PgClient {
         pool = new ConnectionPool(poolConfiguration);
     }
 
+    @NotNull
     public Mono<Long> register(@NotNull final String gender,
-                                 final int age,
-                                 @NotNull final Locale firstLanguage) {
-        return Mono.just(1L);
+                               final int age,
+                               @NotNull final String firstLanguage) {
+        return pool.create()
+                .flatMap(connection -> {
+                    final var uid = Mono.from(connection
+                            .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
+                            .bind("$1", gender)
+                            .bind("$2", age)
+                            .bind("$3", firstLanguage)
+                            .returnGeneratedValues("id")
+                            .execute())
+                            .flatMap(result -> Mono.from(result.map((row, __) -> row.get("id", Long.class))));
+
+                    return Mono.from(connection.close()).then(uid);
+                });
     }
 
-    public Mono<Boolean> addUserAttemptReport(@NotNull final String uid,
+    public Mono<Boolean> addUserAttemptReport(final long uid,
                                               @NotNull final String cid,
                                               @NotNull final String lid,
                                               @NotNull final String tid,
-                                              @NotNull final float[] pitchSamples,
-                                                       final float dtw) {
-        //TODO:
-        return Mono.just(true);
+                                              @NotNull final Float[] rawPitch,
+                                              final int rawSampleRate,
+                                              final float dtw) {
+        return pool.create()
+                .flatMap(connection -> {
+                    final var success = Mono.from(connection
+                            .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, raw_sample_rate, dtw) VALUES ($1, $2, $3, $4, $5, $6, $7)")
+                            .bind("$1", uid)
+                            .bind("$2", cid)
+                            .bind("$3", lid)
+                            .bind("$4", tid)
+                            .bind("$5", rawPitch)
+                            .bind("$6", rawSampleRate)
+                            .bind("$7", dtw)
+                            .execute())
+                            .flatMap(result -> Mono.from(result.getRowsUpdated()).map(updatedRowCount -> updatedRowCount == 1));
+
+                    return Mono.from(connection.close()).then(success);
+                });
     }
 }

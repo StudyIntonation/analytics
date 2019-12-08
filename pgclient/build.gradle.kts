@@ -6,9 +6,8 @@ dependencies {
     implementation("org.jetbrains:annotations:17.0.0")
     implementation("io.r2dbc:r2dbc-postgresql:0.8.0.RELEASE")
     implementation("io.r2dbc:r2dbc-pool:0.8.0.RELEASE")
-
     implementation("com.typesafe:config:1.4.0")
-
+    implementation("io.projectreactor:reactor-core:3.3.1.RELEASE")
     compileOnly("org.projectlombok:lombok:1.18.10")
     annotationProcessor("org.projectlombok:lombok:1.18.10")
 
