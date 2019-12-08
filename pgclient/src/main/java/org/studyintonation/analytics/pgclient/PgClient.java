@@ -43,7 +43,7 @@ public final class PgClient {
             port = dbUri.getPort();
             user = dbUri.getUserInfo().split(":")[0];
             pass = dbUri.getUserInfo().split(":")[1];
-            database = dbUri.getPath();
+            database = dbUri.getPath().replace("/", "");
         } catch (Exception e) {
             log.info("Failed to parse heroku postgres url", e);
 
