@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.studyintonation.analytics.api.util.Exceptions;
 import org.studyintonation.analytics.pgclient.PgClient;
 import reactor.core.publisher.Mono;
 
@@ -33,7 +34,7 @@ public final class Auth implements Api {
                 .map(RegisterRequest::validate)
                 .flatMap(it -> pgClient.register(it.gender.toString(), it.age, it.firstLanguage.toLanguageTag()))
                 .map(RegisterResponse::ok)
-                .onErrorReturn(RegisterResponse.ERROR);
+                .onErrorReturn(Exceptions::logging, RegisterResponse.ERROR);
     }
 
     @RequiredArgsConstructor(onConstructor = @__(@JsonCreator))

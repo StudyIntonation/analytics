@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.studyintonation.analytics.api.util.Exceptions;
 import org.studyintonation.analytics.api.util.JsonEncoder;
 import org.studyintonation.analytics.pgclient.PgClient;
 import reactor.core.publisher.Mono;
@@ -42,7 +43,7 @@ public final class Analytics implements Api {
                         )
                 )
                 .map(success -> success ? SendAttemptReportResponse.OK : SendAttemptReportResponse.ERROR)
-                .onErrorReturn(SendAttemptReportResponse.ERROR);
+                .onErrorReturn(Exceptions::logging, SendAttemptReportResponse.ERROR);
     }
 
     @RequiredArgsConstructor
