@@ -3,6 +3,7 @@ package org.studyintonation.analytics.pgclient;
 import com.typesafe.config.Config;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
+import io.r2dbc.postgresql.codec.Json;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import org.jetbrains.annotations.NotNull;
@@ -71,20 +72,18 @@ public final class PgClient {
                                               @NotNull final String cid,
                                               @NotNull final String lid,
                                               @NotNull final String tid,
-                                              @NotNull final Float[] rawPitch,
-                                              final int rawSampleRate,
+                                              @NotNull final String rawPitchJson,
                                               final float dtw) {
         return pool.create()
                 .flatMap(connection -> {
                     final var success = Mono.from(connection
-                            .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, raw_sample_rate, dtw) VALUES ($1, $2, $3, $4, $5, $6, $7)")
+                            .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, dtw) VALUES ($1, $2, $3, $4, $5, $6)")
                             .bind("$1", uid)
                             .bind("$2", cid)
                             .bind("$3", lid)
                             .bind("$4", tid)
-                            .bind("$5", rawPitch)
-                            .bind("$6", rawSampleRate)
-                            .bind("$7", dtw)
+                            .bind("$5", Json.of(rawPitchJson))
+                            .bind("$6", dtw)
                             .execute())
                             .flatMap(result -> Mono.from(result.getRowsUpdated()).map(updatedRowCount -> updatedRowCount == 1));
 

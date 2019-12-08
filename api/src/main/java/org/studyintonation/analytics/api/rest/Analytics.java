@@ -1,5 +1,7 @@
 package org.studyintonation.analytics.api.rest;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.studyintonation.analytics.api.util.JsonEncoder;
 import org.studyintonation.analytics.pgclient.PgClient;
 import reactor.core.publisher.Mono;
 
@@ -34,8 +37,7 @@ public final class Analytics implements Api {
                                 request.cid,
                                 request.lid,
                                 request.tid,
-                                request.rawPitch,
-                                request.rawSampleRate,
+                                JsonEncoder.asJson(request.rawPitch),
                                 request.dtw
                         )
                 )
@@ -53,9 +55,16 @@ public final class Analytics implements Api {
         @Nullable
         private final String tid;
         @Nullable
-        private final Float[] rawPitch;
-        private final int rawSampleRate;
+        private final Pitch rawPitch;
         private final float dtw;
+
+        @RequiredArgsConstructor(onConstructor = @__(@JsonCreator))
+        @Getter
+        private static final class Pitch {
+            @NotNull
+            private final float[] samples;
+            private final int sampleRate;
+        }
 
         @Override
         public SendAttemptReportRequest validate() {
