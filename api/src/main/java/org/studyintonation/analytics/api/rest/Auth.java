@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,23 +15,23 @@ import reactor.core.publisher.Mono;
 
 import java.util.Locale;
 
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.springframework.http.HttpStatus.ACCEPTED;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
 @RequestMapping("/v0/auth")
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@RequiredArgsConstructor
 public final class Auth implements Api {
     @NotNull
     private final PgClient pgClient;
 
-    @PostMapping(path = "/register", consumes = APPLICATION_JSON, produces = APPLICATION_JSON)
+    @PostMapping(path = "/register", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(ACCEPTED)
     @NotNull
-    public Mono<? extends Response> register(@RequestBody @NotNull final Mono<RegisterRequest> body) {
+    public Mono<RegisterResponse> register(@RequestBody @NotNull final Mono<RegisterRequest> body) {
         return body
-                .map(RegisterRequest::validate)
-                .flatMap(it -> pgClient.register(it.gender.toString(), it.age, it.firstLanguage.toLanguageTag()))
+                .map(RegisterRequest::validated)
+                .flatMap(it -> pgClient.addAnonymousUser(it.gender.toString(), it.age, it.firstLanguage.toLanguageTag()))
                 .map(RegisterResponse::ok)
                 .onErrorReturn(Exceptions::logging, RegisterResponse.ERROR);
     }
@@ -45,10 +44,10 @@ public final class Auth implements Api {
         @Nullable
         private final Locale firstLanguage;
 
-        @NotNull
         @Override
-        public RegisterRequest validate() {
-            return (RegisterRequest) Request.super.validate();
+        @NotNull
+        public RegisterRequest validated() {
+            return (RegisterRequest) Request.super.validated();
         }
 
         private enum Gender {

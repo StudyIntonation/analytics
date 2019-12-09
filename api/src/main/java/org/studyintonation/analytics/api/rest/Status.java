@@ -14,12 +14,13 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @RestController
 @RequestMapping("/v0")
 public final class Status implements Api {
+    @NotNull
     private static final Mono<StatusResponse> STATUS_ONLINE_RESPONSE = Mono.just(StatusResponse.ONLINE);
 
     @GetMapping(path = "/status", produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(OK)
     @NotNull
-    public Mono<? extends Response> status() {
+    public Mono<StatusResponse> status() {
         return STATUS_ONLINE_RESPONSE;
     }
 

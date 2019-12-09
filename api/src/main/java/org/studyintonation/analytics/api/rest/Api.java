@@ -39,7 +39,7 @@ public interface Api {
         }
 
         @NotNull
-        default Request validate() {
+        default Request validated() {
             if (isValid()) {
                 return this;
             }
@@ -53,9 +53,11 @@ public interface Api {
             }
 
             private static final class Holder {
+                @NotNull
                 public static final InvalidError OUTER_INSTANCE = new InvalidError();
             }
 
+            @NotNull
             public static InvalidError instance() {
                 return Holder.OUTER_INSTANCE;
             }

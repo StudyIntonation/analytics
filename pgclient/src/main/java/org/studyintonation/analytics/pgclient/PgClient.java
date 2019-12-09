@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.time.Instant;
 
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
@@ -74,24 +75,22 @@ public final class PgClient {
     }
 
     @NotNull
-    public Mono<Long> register(@NotNull final String gender,
-                               final int age,
-                               @NotNull final String firstLanguage) {
+    public Mono<Long> addAnonymousUser(@NotNull final String gender,
+                                       final int age,
+                                       @NotNull final String firstLanguage) {
         return pool.create()
-                .flatMap(connection -> {
-                    final var uid = Mono.from(connection
-                            .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
-                            .bind("$1", gender)
-                            .bind("$2", age)
-                            .bind("$3", firstLanguage)
-                            .returnGeneratedValues("id")
-                            .execute())
-                            .flatMap(result -> Mono.from(result.map((row, __) -> row.get("id", Long.class))));
-
-                    return Mono.from(connection.close()).then(uid);
-                });
+                .flatMap(connection -> Mono.from(connection
+                        .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
+                        .bind("$1", gender)
+                        .bind("$2", age)
+                        .bind("$3", firstLanguage)
+                        .returnGeneratedValues("id")
+                        .execute())
+                        .flatMap(result -> Mono.from(result.map((row, __) -> row.get("id", Long.class))))
+                        .doFinally(__ -> connection.close()));
     }
 
+    @NotNull
     public Mono<Boolean> addUserAttemptReport(final long uid,
                                               @NotNull final String cid,
                                               @NotNull final String lid,
@@ -99,19 +98,18 @@ public final class PgClient {
                                               @NotNull final String rawPitchJson,
                                               final float dtw) {
         return pool.create()
-                .flatMap(connection -> {
-                    final var success = Mono.from(connection
-                            .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, dtw) VALUES ($1, $2, $3, $4, $5, $6)")
-                            .bind("$1", uid)
-                            .bind("$2", cid)
-                            .bind("$3", lid)
-                            .bind("$4", tid)
-                            .bind("$5", Json.of(rawPitchJson))
-                            .bind("$6", dtw)
-                            .execute())
-                            .flatMap(result -> Mono.from(result.getRowsUpdated()).map(updatedRowCount -> updatedRowCount == 1));
-
-                    return Mono.from(connection.close()).then(success);
-                });
+                .flatMap(connection -> Mono.from(connection
+                        .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, dtw, ts) VALUES ($1, $2, $3, $4, $5, $6, $7)")
+                        .bind("$1", uid)
+                        .bind("$2", cid)
+                        .bind("$3", lid)
+                        .bind("$4", tid)
+                        .bind("$5", Json.of(rawPitchJson))
+                        .bind("$6", dtw)
+                        .bind("$7", Instant.now())
+                        .execute())
+                        .flatMap(result -> Mono.from(result.getRowsUpdated())
+                                .map(Integer.valueOf(1)::equals))
+                        .doFinally(__ -> connection.close()));
     }
 }

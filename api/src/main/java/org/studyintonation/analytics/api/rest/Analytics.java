@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,29 +15,31 @@ import org.studyintonation.analytics.api.util.JsonEncoder;
 import org.studyintonation.analytics.pgclient.PgClient;
 import reactor.core.publisher.Mono;
 
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.springframework.http.HttpStatus.ACCEPTED;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
 @RequestMapping("/v0/analytics")
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@RequiredArgsConstructor
 public final class Analytics implements Api {
     @NotNull
     private final PgClient pgClient;
+    @NotNull
+    private final JsonEncoder jsonEncoder;
 
-    @PostMapping(path = "/sendAttemptReport", consumes = APPLICATION_JSON, produces = APPLICATION_JSON)
+    @PostMapping(path = "/sendAttemptReport", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(ACCEPTED)
     @NotNull
-    public Mono<? extends Response> sendAttemptReport(@RequestBody @NotNull final Mono<SendAttemptReportRequest> body) {
+    public Mono<SendAttemptReportResponse> sendAttemptReport(@RequestBody @NotNull final Mono<SendAttemptReportRequest> body) {
         return body
-                .map(SendAttemptReportRequest::validate)
+                .map(SendAttemptReportRequest::validated)
                 .flatMap(request -> pgClient
                         .addUserAttemptReport(
                                 request.uid,
                                 request.cid,
                                 request.lid,
                                 request.tid,
-                                JsonEncoder.asJson(request.rawPitch),
+                                jsonEncoder.asJson(request.rawPitch),
                                 request.dtw
                         )
                 )
@@ -67,10 +68,10 @@ public final class Analytics implements Api {
             private final int sampleRate;
         }
 
-        @NotNull
         @Override
-        public SendAttemptReportRequest validate() {
-            return (SendAttemptReportRequest) Request.super.validate();
+        @NotNull
+        public SendAttemptReportRequest validated() {
+            return (SendAttemptReportRequest) Request.super.validated();
         }
     }
 

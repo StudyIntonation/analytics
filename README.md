@@ -43,13 +43,14 @@ Response:
 `Content-Type: application/json`
 
 Success:
-
 ```
 {
     "status": "OK",
     "id": 1
 }
 ```
+
+`id` (long) - user id
 
 Failure:
 ```
@@ -78,7 +79,7 @@ Body:
 	"dtw": 1.2
 }
 ```
-`uid` (int) - user id obtained using `/v0/auth/register`
+`uid` (long) - user id obtained using `/v0/auth/register`
 
 `cid`, `lid`, `tid` (String) - course, lesson and task ids
 
@@ -88,14 +89,14 @@ Response:
 
 `Content-Type: application/json`
 
+Success:
 ```
 {
     "status": "OK"
 }
 ```
 
-or
-
+Failure:
 ```
 {
     "status": "ERROR"
