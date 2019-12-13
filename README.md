@@ -116,7 +116,7 @@ Client **SHOULD** be ready to receive unspecified response.
 ## Technology stack
 
 * Java 13
-* Spring Boot Webflux over Reactor-Netty
-* Project-Reactor
+* Spring Boot [Webflux](https://docs.spring.io/spring/docs/current/spring-framework-reference/web-reactive.html) over [Reactor-Netty](https://github.com/reactor/reactor-netty)
+* [Project-Reactor](https://github.com/reactor/reactor-core)
 * Postgres SQL
-* R2DBC postgres + pool driver
+* [R2DBC](https://r2dbc.io/) [postgres](https://github.com/r2dbc/r2dbc-postgresql) + [pool](https://github.com/r2dbc/r2dbc-pool) driver

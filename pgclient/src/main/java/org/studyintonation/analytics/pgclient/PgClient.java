@@ -13,6 +13,8 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.time.Instant;
 
+import static io.r2dbc.pool.PoolingConnectionFactoryProvider.INITIAL_SIZE;
+import static io.r2dbc.pool.PoolingConnectionFactoryProvider.MAX_SIZE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
 import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static io.r2dbc.spi.ConnectionFactoryOptions.HOST;
@@ -54,6 +56,7 @@ public final class PgClient {
         }
 
         final var poolMaxIdleTime = config.getDuration("pool.maxIdleTimeMillis");
+        final var poolMinSize = config.getInt("pool.minSize");
         final var poolMaxSize = config.getInt("pool.maxSize");
 
         final var connectionFactory = ConnectionFactories.get(ConnectionFactoryOptions.builder()
@@ -64,11 +67,12 @@ public final class PgClient {
                 .option(USER, user)
                 .option(PASSWORD, pass)
                 .option(DATABASE, database)
+                .option(INITIAL_SIZE, poolMinSize)
+                .option(MAX_SIZE, poolMaxSize)
                 .build());
 
         final var poolConfiguration = ConnectionPoolConfiguration.builder(connectionFactory)
                 .maxIdleTime(poolMaxIdleTime)
-                .maxSize(poolMaxSize)
                 .build();
 
         pool = new ConnectionPool(poolConfiguration);
@@ -79,15 +83,18 @@ public final class PgClient {
                                        final int age,
                                        @NotNull final String firstLanguage) {
         return pool.create()
-                .flatMap(connection -> Mono.from(connection
-                        .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
-                        .bind("$1", gender)
-                        .bind("$2", age)
-                        .bind("$3", firstLanguage)
-                        .returnGeneratedValues("id")
-                        .execute())
-                        .flatMap(result -> Mono.from(result.map((row, __) -> row.get("id", Long.class))))
-                        .doFinally(__ -> connection.close()));
+                .flatMap(connection -> {
+                    final var uid = Mono.from(connection
+                            .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
+                            .bind("$1", gender)
+                            .bind("$2", age)
+                            .bind("$3", firstLanguage)
+                            .returnGeneratedValues("id")
+                            .execute())
+                            .flatMap(result -> Mono.from(result.map((row, __) -> row.get("id", Long.class))));
+
+                    return Mono.from(connection.close()).then(uid);
+                });
     }
 
     @NotNull
@@ -98,18 +105,21 @@ public final class PgClient {
                                               @NotNull final String rawPitchJson,
                                               final float dtw) {
         return pool.create()
-                .flatMap(connection -> Mono.from(connection
-                        .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, dtw, ts) VALUES ($1, $2, $3, $4, $5, $6, $7)")
-                        .bind("$1", uid)
-                        .bind("$2", cid)
-                        .bind("$3", lid)
-                        .bind("$4", tid)
-                        .bind("$5", Json.of(rawPitchJson))
-                        .bind("$6", dtw)
-                        .bind("$7", Instant.now())
-                        .execute())
-                        .flatMap(result -> Mono.from(result.getRowsUpdated())
-                                .map(Integer.valueOf(1)::equals))
-                        .doFinally(__ -> connection.close()));
+                .flatMap(connection -> {
+                    final var success = Mono.from(connection
+                            .createStatement("INSERT INTO attempt_report (uid, cid, lid, tid, raw_pitch, dtw, ts) VALUES ($1, $2, $3, $4, $5, $6, $7)")
+                            .bind("$1", uid)
+                            .bind("$2", cid)
+                            .bind("$3", lid)
+                            .bind("$4", tid)
+                            .bind("$5", Json.of(rawPitchJson))
+                            .bind("$6", dtw)
+                            .bind("$7", Instant.now())
+                            .execute())
+                            .flatMap(result -> Mono.from(result.getRowsUpdated())
+                                    .map(Integer.valueOf(1)::equals));
+
+                    return Mono.from(connection.close()).then(success);
+                });
     }
 }
