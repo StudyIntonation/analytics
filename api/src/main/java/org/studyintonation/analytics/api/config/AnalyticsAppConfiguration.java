@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.studyintonation.analytics.api.util.JsonEncoder;
+import org.studyintonation.analytics.api.util.Parser;
 import org.studyintonation.analytics.pgclient.PgClient;
 
 @SpringBootConfiguration
@@ -31,7 +31,7 @@ public class AnalyticsAppConfiguration {
 
     @Bean
     @NotNull
-    public JsonEncoder jsonEncoder(@NotNull final ObjectMapper objectMapper) {
-        return new JsonEncoder(objectMapper);
+    public Parser jsonEncoder(@NotNull final ObjectMapper objectMapper) {
+        return new Parser(objectMapper);
     }
 }

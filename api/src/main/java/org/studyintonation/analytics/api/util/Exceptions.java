@@ -13,4 +13,15 @@ public final class Exceptions {
         log.info("Error occurred", throwable);
         return true;
     }
+
+    @NotNull
+    public static <T extends Throwable> UncheckedException uncheckedWrappingChecked(@NotNull final T checked) {
+        return new UncheckedException(checked);
+    }
+
+    private static final class UncheckedException extends RuntimeException {
+        public UncheckedException(@NotNull final Throwable t) {
+            super(t);
+        }
+    }
 }

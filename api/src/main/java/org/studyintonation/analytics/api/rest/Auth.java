@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.studyintonation.analytics.api.util.Exceptions;
+import org.studyintonation.analytics.api.util.Parser;
 import org.studyintonation.analytics.pgclient.PgClient;
 import reactor.core.publisher.Mono;
 
@@ -24,14 +25,20 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public final class Auth implements Api {
     @NotNull
     private final PgClient pgClient;
+    @NotNull
+    private final Parser parser;
 
     @PostMapping(path = "/register", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(ACCEPTED)
     @NotNull
     public Mono<RegisterResponse> register(@RequestBody @NotNull final Mono<RegisterRequest> body) {
         return body
-                .map(RegisterRequest::validated)
-                .flatMap(it -> pgClient.addAnonymousUser(it.gender.toString(), it.age, it.firstLanguage.toLanguageTag()))
+                .map(parser::validatedObject)
+                .flatMap(it -> pgClient.addAnonymousUser(
+                        it.gender.toString(),
+                        it.age,
+                        it.firstLanguage.toLanguageTag())
+                )
                 .map(RegisterResponse::ok)
                 .onErrorReturn(Exceptions::logging, RegisterResponse.ERROR);
     }
@@ -40,15 +47,10 @@ public final class Auth implements Api {
     private static final class RegisterRequest implements Request {
         @Nullable
         private final Gender gender;
-        private final int age;
+        @Nullable
+        private final Integer age;
         @Nullable
         private final Locale firstLanguage;
-
-        @Override
-        @NotNull
-        public RegisterRequest validated() {
-            return (RegisterRequest) Request.super.validated();
-        }
 
         private enum Gender {
             MALE,

@@ -1,4 +1,4 @@
-# studyintonation-analytics
+# Study Intonation Analytics service
 
 Server address: [https://studyintonation-analytics.herokuapp.com/](https://studyintonation-analytics.herokuapp.com/)
 
@@ -30,11 +30,11 @@ Body:
 {
 	"gender": "MALE",
 	"age": 22,
-	"firstLanguage": "ru_RU"
+	"firstLanguage": "ru-RU"
 }
 ```
 
-`gender` **MUST** be one of `MALE`, `FEMALE`, `THIRD`
+`gender` - **MUST** be one of `MALE`, `FEMALE`, `THIRD`.
 
 Response:
 
@@ -50,7 +50,7 @@ Success:
 }
 ```
 
-`id` (long) - user id
+`id` (long) - user id.
 
 Failure:
 ```
@@ -79,9 +79,9 @@ Body:
 	"dtw": 1.2
 }
 ```
-`uid` (long) - user id obtained using `/v0/auth/register`
+`uid` (long) - user id obtained using `/v0/auth/register`.
 
-`cid`, `lid`, `tid` (String) - course, lesson and task ids
+`cid`, `lid`, `tid` (String) - course, lesson and task ids.
 
 Response:
 
@@ -102,6 +102,85 @@ Failure:
     "status": "ERROR"
 }
 ```
+
+### Get users
+
+`GET /v0/analytics/getUsers?token={token}`
+
+`{token}` (String) (Required) - access token.
+
+Response:
+
+1. `200 OK`
+
+    `Content-Type: application/json`
+
+    Success:
+    ```
+    [
+        {
+           "id": 1,
+            "gender": "MALE",
+            "age": 21,
+            "firstLanguage": "ru-RU" 
+        }, ...
+    ]
+    ```
+
+    Failure: empty array `[]`
+
+2. `400 Bad Request` (Missing required parameter)
+
+    `Content-Type: application/json`
+
+### Get attempt reports
+
+`GET /v0/analytics/getAttemptReports?token={token}&uid={uid}&from={from}&to={to}`
+
+`{token}` (String) (Required) - access token.
+
+`{uid}` (long) (Optional) - user id. If missing, method returns attempt reports of all users.
+
+`{from}` (Instant) (Optional) - from date. If missing, method returns attempt reports without lower date bound.
+
+`{to}` (Instant) (Optional) - to date. If missing, method returns attempt reports up to now.
+
+Response:
+
+1. `200 OK`
+
+    `Content-Type: application/json`
+
+    Success:
+    ```
+    [
+        {
+            "id": 309,
+            "uid": 1,
+            "cid": "0",
+            "lid": "0",
+            "tid": "1",
+            "pitch": {
+                "samples": [
+                    1,
+                    1.1,
+                    2.8,
+                    3.9,
+                    4.3
+                ],
+                "sampleRate": 44100
+            },
+            "dtw": 1.2,
+            "ts": "2019-12-14T14:09:33.908378Z"
+            }, ...
+    ]
+    ```
+
+    Failure: empty array `[]`
+
+2. `400 Bad Request` (Missing required parameter)
+
+    `Content-Type: application/json`
 
 ### Remarks
 

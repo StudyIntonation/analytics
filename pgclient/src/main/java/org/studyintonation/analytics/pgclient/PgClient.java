@@ -4,14 +4,22 @@ import com.typesafe.config.Config;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.postgresql.codec.Json;
+import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.r2dbc.spi.Statement;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.studyintonation.analytics.pgclient.domain.AttemptReport;
+import org.studyintonation.analytics.pgclient.domain.User;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 import static io.r2dbc.pool.PoolingConnectionFactoryProvider.INITIAL_SIZE;
 import static io.r2dbc.pool.PoolingConnectionFactoryProvider.MAX_SIZE;
@@ -22,6 +30,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.PASSWORD;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PORT;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PROTOCOL;
 import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
+import static java.util.Objects.requireNonNull;
 
 @Slf4j
 public final class PgClient {
@@ -80,7 +89,7 @@ public final class PgClient {
 
     @NotNull
     public Mono<Long> addAnonymousUser(@NotNull final String gender,
-                                       final int age,
+                                       @NotNull final Integer age,
                                        @NotNull final String firstLanguage) {
         return pool.create()
                 .flatMap(connection -> {
@@ -98,12 +107,12 @@ public final class PgClient {
     }
 
     @NotNull
-    public Mono<Boolean> addUserAttemptReport(final long uid,
+    public Mono<Boolean> addUserAttemptReport(@NotNull final Long uid,
                                               @NotNull final String cid,
                                               @NotNull final String lid,
                                               @NotNull final String tid,
                                               @NotNull final String rawPitchJson,
-                                              final float dtw) {
+                                              @NotNull final Float dtw) {
         return pool.create()
                 .flatMap(connection -> {
                     final var success = Mono.from(connection
@@ -121,5 +130,73 @@ public final class PgClient {
 
                     return Mono.from(connection.close()).then(success);
                 });
+    }
+
+    @NotNull
+    public Mono<List<User>> getUsers(@NotNull final String adminToken) {
+        return pool.create().flatMap(connection -> {
+            final var users = Mono.from(connection
+                    .createStatement("SELECT * FROM \"user\" WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL")
+                    .bind("$1", adminToken)
+                    .execute())
+                    .flatMap(result -> Flux.from(result.map((row, __) -> new User(
+                            requireNonNull(row.get("id", Long.class)),
+                            requireNonNull(row.get("gender", String.class)),
+                            requireNonNull(row.get("age", Integer.class)),
+                            requireNonNull(row.get("first_language", String.class))
+                    ))).collectList());
+
+            return Mono.from(connection.close()).then(users);
+        });
+    }
+
+    @NotNull
+    public Mono<List<AttemptReport>> getAttemptReports(@NotNull final String adminToken,
+                                                       @Nullable final Long uid,
+                                                       @Nullable final Instant from,
+                                                       @Nullable final Instant to) {
+        return pool.create().flatMap(connection -> {
+            final var attempts = Mono.from(getAttemptReportsStatement(connection, adminToken, uid, from, to)
+                    .execute())
+                    .flatMap(result -> Flux.from(result.map((row, __) -> new AttemptReport(
+                            requireNonNull(row.get("id", Long.class)),
+                            requireNonNull(row.get("uid", Long.class)),
+                            requireNonNull(row.get("cid", String.class)),
+                            requireNonNull(row.get("lid", String.class)),
+                            requireNonNull(row.get("tid", String.class)),
+                            requireNonNull(row.get("raw_pitch", Json.class)).asString(),
+                            requireNonNull(row.get("dtw", Float.class)),
+                            requireNonNull(row.get("ts", Instant.class))
+                    ))).collectList());
+
+            return Mono.from(connection.close()).then(attempts);
+        });
+    }
+
+    @NotNull
+    private Statement getAttemptReportsStatement(@NotNull final Connection connection,
+                                                 @NotNull final String adminToken,
+                                                 @Nullable final Long uid,
+                                                 @Nullable final Instant from,
+                                                 @Nullable final Instant to) {
+        if (uid != null) {
+            return connection.createStatement(
+                    "SELECT * FROM attempt_report " +
+                            "WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL " +
+                            "AND uid = $2 " +
+                            "AND ts BETWEEN $3 AND $4")
+                    .bind("$1", adminToken)
+                    .bind("$2", uid)
+                    .bind("$3", Optional.ofNullable(from).orElse(Instant.EPOCH))
+                    .bind("$4", Optional.ofNullable(to).orElse(Instant.now()));
+        }
+
+        return connection.createStatement(
+                "SELECT * FROM attempt_report " +
+                        "WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL " +
+                        "AND ts BETWEEN $2 AND $3")
+                .bind("$1", adminToken)
+                .bind("$2", Optional.ofNullable(from).orElse(Instant.EPOCH))
+                .bind("$3", Optional.ofNullable(to).orElse(Instant.now()));
     }
 }

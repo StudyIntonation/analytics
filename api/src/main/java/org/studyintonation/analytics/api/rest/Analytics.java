@@ -5,17 +5,26 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.studyintonation.analytics.api.util.Exceptions;
-import org.studyintonation.analytics.api.util.JsonEncoder;
+import org.studyintonation.analytics.api.util.Parser;
 import org.studyintonation.analytics.pgclient.PgClient;
+import org.studyintonation.analytics.pgclient.domain.AttemptReport;
+import org.studyintonation.analytics.pgclient.domain.User;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+
 import static org.springframework.http.HttpStatus.ACCEPTED;
+import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
@@ -25,21 +34,21 @@ public final class Analytics implements Api {
     @NotNull
     private final PgClient pgClient;
     @NotNull
-    private final JsonEncoder jsonEncoder;
+    private final Parser parser;
 
     @PostMapping(path = "/sendAttemptReport", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(ACCEPTED)
     @NotNull
     public Mono<SendAttemptReportResponse> sendAttemptReport(@RequestBody @NotNull final Mono<SendAttemptReportRequest> body) {
         return body
-                .map(SendAttemptReportRequest::validated)
+                .map(parser::validatedObject)
                 .flatMap(request -> pgClient
                         .addUserAttemptReport(
                                 request.uid,
                                 request.cid,
                                 request.lid,
                                 request.tid,
-                                jsonEncoder.asJson(request.rawPitch),
+                                parser.validatedJson(request.rawPitch),
                                 request.dtw
                         )
                 )
@@ -47,9 +56,33 @@ public final class Analytics implements Api {
                 .onErrorReturn(Exceptions::logging, SendAttemptReportResponse.ERROR);
     }
 
+    @GetMapping(path = "/getUsers", produces = APPLICATION_JSON_VALUE)
+    @ResponseStatus(OK)
+    @NotNull
+    public Mono<List<User>> getUsers(@RequestParam(name = "token") @NotNull final String adminToken) {
+        return Mono.just(adminToken)
+                .map(parser::validatedPrimitive)
+                .flatMap(pgClient::getUsers)
+                .onErrorReturn(Exceptions::logging, Collections.emptyList());
+    }
+
+    @GetMapping(path = "/getAttemptReports", produces = APPLICATION_JSON_VALUE)
+    @ResponseStatus(OK)
+    @NotNull
+    public Mono<List<AttemptReport>> getAttemptReports(@RequestParam(name = "token") @NotNull final String adminToken,
+                                                       @RequestParam(required = false) @Nullable final Long uid,
+                                                       @RequestParam(required = false) @Nullable final Instant from,
+                                                       @RequestParam(required = false) @Nullable final Instant to) {
+        return Mono.just(adminToken)
+                .map(parser::validatedPrimitive)
+                .flatMap(token -> pgClient.getAttemptReports(token, uid, from, to))
+                .onErrorReturn(Exceptions::logging, Collections.emptyList());
+    }
+
     @RequiredArgsConstructor
     private static final class SendAttemptReportRequest implements Request {
-        private final long uid;
+        @Nullable
+        private final Long uid;
         @Nullable
         private final String cid;
         @Nullable
@@ -58,20 +91,16 @@ public final class Analytics implements Api {
         private final String tid;
         @Nullable
         private final Pitch rawPitch;
-        private final float dtw;
+        @Nullable
+        private final Float dtw;
 
         @RequiredArgsConstructor(onConstructor = @__(@JsonCreator))
         @Getter
         private static final class Pitch {
-            @NotNull
+            @Nullable
             private final float[] samples;
-            private final int sampleRate;
-        }
-
-        @Override
-        @NotNull
-        public SendAttemptReportRequest validated() {
-            return (SendAttemptReportRequest) Request.super.validated();
+            @Nullable
+            private final Integer sampleRate;
         }
     }
 
