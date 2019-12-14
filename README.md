@@ -145,6 +145,8 @@ Response:
 
 `{to}` (Instant) (Optional) - to date. If missing, method returns attempt reports up to now.
 
+Date format: `2019-12-14T16:01:02.301902Z` UTC
+
 Response:
 
 1. `200 OK`
