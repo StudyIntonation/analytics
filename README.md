@@ -34,7 +34,7 @@ Body:
 }
 ```
 
-`gender` - **MUST** be one of `MALE`, `FEMALE`, `THIRD`.
+`gender` - **MUST** be one of `MALE`, `FEMALE`, `NOT_SPECIFIED`.
 
 Response:
 
@@ -174,7 +174,7 @@ Response:
             },
             "dtw": 1.2,
             "ts": "2019-12-14T14:09:33.908378Z"
-            }, ...
+        }, ...
     ]
     ```
 
