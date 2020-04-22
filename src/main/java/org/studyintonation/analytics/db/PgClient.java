@@ -230,24 +230,21 @@ public final class PgClient {
                                                         @Nullable final Long uid,
                                                         @Nullable final Instant from,
                                                         @Nullable final Instant to) {
-        if (uid != null) {
-            return connection.createStatement(
-                    "SELECT * FROM attempt_report " +
-                            "WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL " +
-                            "AND uid = $2 " +
-                            "AND ts BETWEEN $3 AND $4")
-                    .bind("$1", adminToken)
-                    .bind("$2", uid)
-                    .bind("$3", Optional.ofNullable(from).orElse(Instant.EPOCH))
-                    .bind("$4", Optional.ofNullable(to).orElse(Instant.now()));
-        }
-
-        return connection.createStatement(
-                "SELECT * FROM attempt_report " +
-                        "WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL " +
-                        "AND ts BETWEEN $2 AND $3")
+        //@formatter:off
+        final var statement = connection.createStatement(
+                     "SELECT * FROM attempt_report " +
+                     "WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL " +
+      (uid != null ? "AND uid = $4 " : "") +
+                     "AND ts BETWEEN $2 AND $3")
+        //@formatter:on
                 .bind("$1", adminToken)
                 .bind("$2", Optional.ofNullable(from).orElse(Instant.EPOCH))
                 .bind("$3", Optional.ofNullable(to).orElse(Instant.now()));
+
+        if (uid != null) {
+            statement.bind("$4", uid);
+        }
+
+        return statement;
     }
 }
