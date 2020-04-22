@@ -1,8 +1,8 @@
-package org.studyintonation.analytics.app.db.transform;
+package org.studyintonation.analytics.db.transform;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.studyintonation.analytics.app.model.Signal;
+import org.studyintonation.analytics.model.Signal;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
@@ -29,7 +29,7 @@ public final class SignalTransform {
         final var floats = new float[byteBuf.limit() >> 2];
 
         byteBuf.asFloatBuffer().get(floats);
-        log.info(Thread.currentThread().getName());
+
         return new Signal(floats, sampleRate);
     }
 }

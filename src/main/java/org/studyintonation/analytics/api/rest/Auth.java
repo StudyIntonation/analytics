@@ -1,4 +1,4 @@
-package org.studyintonation.analytics.app.api.rest;
+package org.studyintonation.analytics.api.rest;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.RequiredArgsConstructor;
@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.studyintonation.analytics.app.api.util.Exceptions;
-import org.studyintonation.analytics.app.api.util.RequestValidator;
-import org.studyintonation.analytics.app.db.PgClient;
+import org.studyintonation.analytics.api.util.Exceptions;
+import org.studyintonation.analytics.api.util.RequestValidator;
+import org.studyintonation.analytics.db.PgClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Locale;
@@ -23,22 +23,16 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @RequestMapping("/v0/auth")
 @RequiredArgsConstructor
 public final class Auth implements Api {
-    @NotNull
     private final PgClient pgClient;
-    @NotNull
     private final RequestValidator requestValidator;
 
     @PostMapping(path = "/register", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(ACCEPTED)
-    @NotNull
     public Mono<RegisterResponse> register(@RequestBody final Mono<RegisterRequest> body) {
         return body
                 .filter(requestValidator::isValid)
-                .flatMap(it -> pgClient.addAnonymousUser(
-                        it.gender.toString(),
-                        it.age,
-                        it.firstLanguage.toLanguageTag())
-                )
+                .flatMap(it -> pgClient
+                        .addAnonymousUser(it.gender.toString(), it.age, it.firstLanguage.toLanguageTag()))
                 .map(RegisterResponse::ok)
                 .onErrorReturn(Exceptions::logging, RegisterResponse.ERROR);
     }

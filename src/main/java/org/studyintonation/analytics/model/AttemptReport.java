@@ -1,4 +1,4 @@
-package org.studyintonation.analytics.app.model;
+package org.studyintonation.analytics.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;

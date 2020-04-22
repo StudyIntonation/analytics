@@ -1,4 +1,4 @@
-package org.studyintonation.analytics.app.api.rest;
+package org.studyintonation.analytics.api.rest;
 
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;

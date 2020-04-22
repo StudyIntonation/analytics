@@ -1,9 +1,7 @@
-package org.studyintonation.analytics.app.model;
+package org.studyintonation.analytics.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,11 +10,12 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonInclude(NON_NULL)
 @JsonAutoDetect(fieldVisibility = ANY)
-@Getter
-@RequiredArgsConstructor(onConstructor = @__(@JsonCreator))
-public final class Signal {
+@RequiredArgsConstructor
+public class User {
+    private final long id;
     @NotNull
-    private final float[] samples;
+    private final String gender;
+    private final int age;
     @NotNull
-    private final Integer sampleRate;
+    private final String firstLanguage;
 }

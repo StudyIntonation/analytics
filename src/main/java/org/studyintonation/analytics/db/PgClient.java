@@ -1,4 +1,4 @@
-package org.studyintonation.analytics.app.db;
+package org.studyintonation.analytics.db;
 
 import com.typesafe.config.Config;
 import io.r2dbc.pool.ConnectionPool;
@@ -6,13 +6,15 @@ import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.r2dbc.spi.Result;
+import io.r2dbc.spi.Row;
 import io.r2dbc.spi.Statement;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.studyintonation.analytics.app.db.transform.SignalTransform;
-import org.studyintonation.analytics.app.model.AttemptReport;
-import org.studyintonation.analytics.app.model.User;
+import org.studyintonation.analytics.db.transform.SignalTransform;
+import org.studyintonation.analytics.model.AttemptReport;
+import org.studyintonation.analytics.model.User;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -93,19 +95,17 @@ public final class PgClient {
                                        @NotNull final Integer age,
                                        @NotNull final String firstLanguage) {
         return pool.create()
-                .flatMap(connection -> {
-                    final var uid = Mono.from(connection
-                            .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
-                            .bind("$1", gender)
-                            .bind("$2", age)
-                            .bind("$3", firstLanguage)
-                            .returnGeneratedValues("id")
-                            .execute())
-                            .flatMap(result -> Mono.from(result.map((row, __) -> row.get("id", Long.class))));
-
-                    return Mono.from(connection.close())
-                            .then(uid);
-                });
+                .flatMap(connection -> Mono
+                        .from(connection
+                                .createStatement("INSERT INTO \"user\" (gender, age, first_language) VALUES ($1, $2, $3)")
+                                .bind("$1", gender)
+                                .bind("$2", age)
+                                .bind("$3", firstLanguage)
+                                .returnGeneratedValues("id")
+                                .execute())
+                        .flatMap(PgClient::rowIdMono)
+                        .publishOn(Schedulers.boundedElastic())
+                        .doFinally(__ -> close(connection)));
     }
 
     @NotNull
@@ -125,7 +125,7 @@ public final class PgClient {
                     final var rawPitch = tuple.getT3();
                     final var processedPitch = tuple.getT4();
 
-                    final var success = Mono.from(connection
+                    return Mono.from(connection
                             .createStatement("INSERT INTO attempt_report (" +
                                                     "uid, " +
                                                     "cid, " +
@@ -154,10 +154,9 @@ public final class PgClient {
                             .execute())
                             .flatMap(result -> Mono
                                     .from(result.getRowsUpdated())
-                                    .map(Integer.valueOf(1)::equals));
-
-                    return Mono.from(connection.close())
-                            .then(success);
+                                    .map(Integer.valueOf(1)::equals))
+                            .publishOn(Schedulers.boundedElastic())
+                            .doFinally(__ -> close(connection));
                 });
         //@formatter:on
     }
@@ -165,22 +164,20 @@ public final class PgClient {
     @NotNull
     public Flux<User> getUsers(@NotNull final String adminToken) {
         return pool.create()
-                .flatMapMany(connection -> {
-                    final var users = Mono
-                            .from(connection
-                                    .createStatement("SELECT * FROM \"user\" WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL")
-                                    .bind("$1", adminToken)
-                                    .execute())
-                            .flatMapMany(result -> Flux.from(result.map((row, __) -> new User(
-                                    requireNonNull(row.get("id", Long.class)),
-                                    requireNonNull(row.get("gender", String.class)),
-                                    requireNonNull(row.get("age", Integer.class)),
-                                    requireNonNull(row.get("first_language", String.class))
-                            ))));
-
-                    return Mono.from(connection.close())
-                            .thenMany(users);
-                });
+                .flatMapMany(connection -> Mono
+                        .from(connection
+                                .createStatement("SELECT * FROM \"user\" WHERE (SELECT * FROM admin_token WHERE token = $1) IS NOT NULL")
+                                .bind("$1", adminToken)
+                                .execute())
+                        .flatMapMany(PgClient::rowFlux)
+                        .map(row -> new User(
+                                requireNonNull(row.get("id", Long.class)),
+                                requireNonNull(row.get("gender", String.class)),
+                                requireNonNull(row.get("age", Integer.class)),
+                                requireNonNull(row.get("first_language", String.class))
+                        ))
+                        .publishOn(Schedulers.boundedElastic())
+                        .doFinally(__ -> close(connection)));
     }
 
     @NotNull
@@ -190,47 +187,49 @@ public final class PgClient {
                                                         @Nullable final Instant to) {
         //@formatter:off
         return pool.create()
-                .flatMapMany(connection -> {
-                    final var attempts = Mono
-                            .from(getAttemptReportsStatement(connection, adminToken, uid, from, to).execute())
-                            .flatMapMany(result -> Flux.from(result.map((row, __) -> row)))
-                            .flatMap(row -> Mono
-                                    .zip(Mono.fromSupplier(() -> SignalTransform.transform(requireNonNull(row.get("audio_samples", ByteBuffer.class)),
-                                                                                           requireNonNull(row.get("audio_sample_rate", Integer.class))))
-                                             /*.subscribeOn(Schedulers.boundedElastic())*/,
-                                         Mono.fromSupplier(() -> SignalTransform.transform(requireNonNull(row.get("raw_pitch_samples", ByteBuffer.class)),
-                                                                                           requireNonNull(row.get("raw_pitch_sample_rate", Integer.class))))
-                                             /*.subscribeOn(Schedulers.boundedElastic())*/,
-                                         Mono.fromSupplier(() -> SignalTransform.transform(requireNonNull(row.get("processed_pitch_samples", ByteBuffer.class)),
-                                                                                           requireNonNull(row.get("processed_pitch_sample_rate", Integer.class))))
-                                             /*.subscribeOn(Schedulers.boundedElastic())*/
-                                    )
-                                    .map(signals -> new AttemptReport.Output(
-                                            requireNonNull(row.get("id", Long.class)),
-                                            requireNonNull(row.get("uid", Long.class)),
-                                            requireNonNull(row.get("cid", String.class)),
-                                            requireNonNull(row.get("lid", String.class)),
-                                            requireNonNull(row.get("tid", String.class)),
-                                            signals.getT1(),
-                                            signals.getT2(),
-                                            signals.getT3(),
-                                            requireNonNull(row.get("dtw", Float.class)),
-                                            requireNonNull(row.get("ts", Instant.class))
-                                    ))
-                            );
-
-                    return Mono.from(connection.close())
-                            .thenMany(attempts);
-                });
+                .flatMapMany(connection -> Mono
+                        .from(getAttemptReportsStatement(connection, adminToken, uid, from, to).execute())
+                        .flatMapMany(PgClient::rowFlux)
+                        .map(row -> new AttemptReport.Output(
+                                requireNonNull(row.get("id", Long.class)),
+                                requireNonNull(row.get("uid", Long.class)),
+                                requireNonNull(row.get("cid", String.class)),
+                                requireNonNull(row.get("lid", String.class)),
+                                requireNonNull(row.get("tid", String.class)),
+                                SignalTransform.transform(requireNonNull(row.get("audio_samples", ByteBuffer.class)),
+                                                          requireNonNull(row.get("audio_sample_rate", Integer.class))),
+                                SignalTransform.transform(requireNonNull(row.get("raw_pitch_samples", ByteBuffer.class)),
+                                                          requireNonNull(row.get("raw_pitch_sample_rate", Integer.class))),
+                                SignalTransform.transform(requireNonNull(row.get("processed_pitch_samples", ByteBuffer.class)),
+                                                          requireNonNull(row.get("processed_pitch_sample_rate", Integer.class))),
+                                requireNonNull(row.get("dtw", Float.class)),
+                                requireNonNull(row.get("ts", Instant.class))
+                        ))
+                        .publishOn(Schedulers.boundedElastic())
+                        .doFinally(__ -> close(connection)));
         //@formatter:on
     }
 
     @NotNull
-    private Statement getAttemptReportsStatement(@NotNull final Connection connection,
-                                                 @NotNull final String adminToken,
-                                                 @Nullable final Long uid,
-                                                 @Nullable final Instant from,
-                                                 @Nullable final Instant to) {
+    private static Mono<Long> rowIdMono(@NotNull final Result result) {
+        return Mono.from(result.map((row, __) -> row.get("id", Long.class)));
+    }
+
+    @NotNull
+    private static Flux<Row> rowFlux(@NotNull final Result result) {
+        return Flux.from(result.map((row, __) -> row));
+    }
+
+    private static void close(@NotNull final Connection connection) {
+        Mono.from(connection.close()).block();
+    }
+
+    @NotNull
+    private static Statement getAttemptReportsStatement(@NotNull final Connection connection,
+                                                        @NotNull final String adminToken,
+                                                        @Nullable final Long uid,
+                                                        @Nullable final Instant from,
+                                                        @Nullable final Instant to) {
         if (uid != null) {
             return connection.createStatement(
                     "SELECT * FROM attempt_report " +

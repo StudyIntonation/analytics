@@ -1,4 +1,4 @@
-package org.studyintonation.analytics.app.api.rest;
+package org.studyintonation.analytics.api.rest;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;

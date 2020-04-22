@@ -1,4 +1,4 @@
-package org.studyintonation.analytics.app.api.util;
+package org.studyintonation.analytics.api.util;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
