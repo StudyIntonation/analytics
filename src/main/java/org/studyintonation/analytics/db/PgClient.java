@@ -37,8 +37,8 @@ import static java.util.Objects.requireNonNull;
 
 @Slf4j
 public final class PgClient {
-    @NotNull
     private final ConnectionPool pool;
+    private final SignalTransform signalTransform;
 
     public PgClient(@NotNull final Config config) {
         String host;
@@ -87,7 +87,8 @@ public final class PgClient {
                 .maxIdleTime(poolMaxIdleTime)
                 .build();
 
-        pool = new ConnectionPool(poolConfiguration);
+        this.pool = new ConnectionPool(poolConfiguration);
+        this.signalTransform = new SignalTransform(config.getInt("transform.targetAudioSampleRate"));
     }
 
     @NotNull
@@ -113,11 +114,11 @@ public final class PgClient {
         //@formatter:off
         return Mono
                 .zip(pool.create(),
-                     Mono.fromSupplier(() -> SignalTransform.transform(attemptReport.getAudio()))
+                     Mono.fromSupplier(() -> signalTransform.transformAudio(attemptReport.getAudio()))
                          .subscribeOn(Schedulers.boundedElastic()),
-                     Mono.fromSupplier(() -> SignalTransform.transform(attemptReport.getRawPitch()))
+                     Mono.fromSupplier(() -> signalTransform.transform(attemptReport.getRawPitch()))
                          .subscribeOn(Schedulers.boundedElastic()),
-                     Mono.fromSupplier(() -> SignalTransform.transform(attemptReport.getProcessedPitch()))
+                     Mono.fromSupplier(() -> signalTransform.transform(attemptReport.getProcessedPitch()))
                          .subscribeOn(Schedulers.boundedElastic()))
                 .flatMap(tuple -> {
                     final var connection = tuple.getT1();
@@ -196,11 +197,11 @@ public final class PgClient {
                                 requireNonNull(row.get("cid", String.class)),
                                 requireNonNull(row.get("lid", String.class)),
                                 requireNonNull(row.get("tid", String.class)),
-                                SignalTransform.transform(requireNonNull(row.get("audio_samples", ByteBuffer.class)),
+                                signalTransform.transform(requireNonNull(row.get("audio_samples", ByteBuffer.class)),
                                                           requireNonNull(row.get("audio_sample_rate", Integer.class))),
-                                SignalTransform.transform(requireNonNull(row.get("raw_pitch_samples", ByteBuffer.class)),
+                                signalTransform.transform(requireNonNull(row.get("raw_pitch_samples", ByteBuffer.class)),
                                                           requireNonNull(row.get("raw_pitch_sample_rate", Integer.class))),
-                                SignalTransform.transform(requireNonNull(row.get("processed_pitch_samples", ByteBuffer.class)),
+                                signalTransform.transform(requireNonNull(row.get("processed_pitch_samples", ByteBuffer.class)),
                                                           requireNonNull(row.get("processed_pitch_sample_rate", Integer.class))),
                                 requireNonNull(row.get("dtw", Float.class)),
                                 requireNonNull(row.get("ts", Instant.class))
