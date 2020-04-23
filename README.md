@@ -28,9 +28,11 @@ Response:
 Body:
 ```json
 {
-    "gender": "MALE",
-    "age": 22,
-    "firstLanguage": "ru-RU"
+    "user": {
+        "gender": "MALE",
+        "age": 22,
+        "firstLanguage": "ru-RU"
+    }
 }
 ```
 
@@ -68,23 +70,25 @@ Failure:
 Body:
 ```json
 {
-    "uid": 1,
-    "cid": "0",
-    "lid": "0",
-    "tid": "1",
-    "audio": {
-        "samples": [1.0, ..., 1.3],
-        "sampleRate": 44100
-    },
-    "rawPitch": {
-	    "samples": [1.0, ..., 4.7],
-	    "sampleRate": 8000
-    },
-    "processedPitch": {
-	    "samples": [1.0, ..., 3.9],
-	    "sampleRate": 256
-    },
-    "dtw": 1.2
+    "attempt": {
+        "uid": 1,
+        "cid": "0",
+        "lid": "0",
+        "tid": "1",
+        "audio": {
+            "samples": [1.0, 1.3],
+            "sampleRate": 44100
+        },
+        "rawPitch": {
+            "samples": [1.0, 4.7],
+            "sampleRate": 8000
+        },
+        "processedPitch": {
+            "samples": [1.0, 3.9],
+            "sampleRate": 256
+        },
+        "dtw": 1.2
+    }
 }
 ```
 `uid` (long) - user id obtained using `/v0/auth/register`.
@@ -131,7 +135,7 @@ Response:
             "gender": "MALE",
             "age": 21,
             "firstLanguage": "ru-RU" 
-        }, ...
+        }
     ]
     ```
 
@@ -171,20 +175,20 @@ Response:
             "lid": "0",
             "tid": "1",
             "audio": {
-                "samples": [1.0, ..., 1.3],
+                "samples": [1.0, 1.3],
                 "sampleRate": 44100
             },
             "rawPitch": {
-                "samples": [1.0, ..., 4.7],
+                "samples": [1.0, 4.7],
                 "sampleRate": 8000
             },
             "processedPitch": {
-                "samples": [1.0, ..., 3.9],
+                "samples": [1.0, 3.9],
                 "sampleRate": 256
             },
             "dtw": 1.2,
             "ts": "2019-12-14T14:09:33.908378Z"
-        }, ...
+        }
     ]
     ```
 

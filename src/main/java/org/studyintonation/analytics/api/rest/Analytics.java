@@ -47,7 +47,7 @@ public final class Analytics implements Api {
 
     @GetMapping(path = "/getUsers", produces = APPLICATION_JSON_VALUE)
     @ResponseStatus(OK)
-    public Flux<User> getUsers(@RequestParam(name = "token") final String adminToken) {
+    public Flux<User.Output> getUsers(@RequestParam(name = "token") final String adminToken) {
         return Mono.just(adminToken)
                 .filter(requestValidator::isValidPrimitive)
                 .flatMapMany(pgClient::getUsers)

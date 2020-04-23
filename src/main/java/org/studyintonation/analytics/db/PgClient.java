@@ -162,7 +162,7 @@ public final class PgClient {
     }
 
     @NotNull
-    public Flux<User> getUsers(@NotNull final String adminToken) {
+    public Flux<User.Output> getUsers(@NotNull final String adminToken) {
         return pool.create()
                 .flatMapMany(connection -> Mono
                         .from(connection
@@ -170,7 +170,7 @@ public final class PgClient {
                                 .bind("$1", adminToken)
                                 .execute())
                         .flatMapMany(PgClient::rowFlux)
-                        .map(row -> new User(
+                        .map(row -> new User.Output(
                                 requireNonNull(row.get("id", Long.class)),
                                 requireNonNull(row.get("gender", String.class)),
                                 requireNonNull(row.get("age", Integer.class)),

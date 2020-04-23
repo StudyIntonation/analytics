@@ -1,6 +1,7 @@
 package org.studyintonation.analytics.api.rest;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,9 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.studyintonation.analytics.api.util.Exceptions;
 import org.studyintonation.analytics.api.util.RequestValidator;
 import org.studyintonation.analytics.db.PgClient;
+import org.studyintonation.analytics.model.User;
 import reactor.core.publisher.Mono;
-
-import java.util.Locale;
 
 import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -31,26 +31,18 @@ public final class Auth implements Api {
     public Mono<RegisterResponse> register(@RequestBody final Mono<RegisterRequest> body) {
         return body
                 .filter(requestValidator::isValid)
+                .map(RegisterRequest::getUser)
                 .flatMap(it -> pgClient
-                        .addAnonymousUser(it.gender.toString(), it.age, it.firstLanguage.toLanguageTag()))
+                        .addAnonymousUser(it.getGender().toString(), it.getAge(), it.getFirstLanguage().toLanguageTag()))
                 .map(RegisterResponse::ok)
                 .onErrorReturn(Exceptions::logging, RegisterResponse.ERROR);
     }
 
+    @Getter
     @RequiredArgsConstructor(onConstructor = @__(@JsonCreator))
     private static final class RegisterRequest implements Request {
         @NotNull
-        private final Gender gender;
-        @NotNull
-        private final Integer age;
-        @NotNull
-        private final Locale firstLanguage;
-
-        private enum Gender {
-            MALE,
-            FEMALE,
-            NON_BINARY
-        }
+        private final User.Input user;
     }
 
     @RequiredArgsConstructor
