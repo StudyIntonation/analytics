@@ -1,6 +1,5 @@
 package org.studyintonation.analytics.db.transform;
 
-import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.studyintonation.analytics.model.Signal;
 import reactor.util.function.Tuple2;
@@ -8,7 +7,6 @@ import reactor.util.function.Tuples;
 
 import java.nio.ByteBuffer;
 
-@Slf4j
 public final class SignalTransform {
     private SignalTransform() {
     }

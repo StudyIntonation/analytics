@@ -28,9 +28,9 @@ Response:
 Body:
 ```
 {
-	"gender": "MALE",
-	"age": 22,
-	"firstLanguage": "ru-RU"
+    "gender": "MALE",
+    "age": 22,
+    "firstLanguage": "ru-RU"
 }
 ```
 
