@@ -34,7 +34,7 @@ Body:
 }
 ```
 
-`gender` - **MUST** be one of `MALE`, `FEMALE`, `NOT_SPECIFIED`.
+`gender` - **MUST** be one of `MALE`, `FEMALE`, `NON_BINARY`.
 
 Response:
 
@@ -68,15 +68,23 @@ Failure:
 Body:
 ```
 {
-	"uid": 1,
-	"cid": "0",
-	"lid": "0",
-	"tid": "1",
-	"rawPitch": {
-		"samples": [1.0, 1.1, -2.8, 3.9, 4.3],
-		"sampleRate": 44100
-	},
-	"dtw": 1.2
+    "uid": 1,
+    "cid": "0",
+    "lid": "0",
+    "tid": "1",
+    "audio": {
+        "samples": [1.0, ..., 1.3],
+        "sampleRate": 44100
+    },
+    "rawPitch": {
+	    "samples": [1.0, ..., 4.7],
+	    "sampleRate": 8000
+    },
+    "processedPitch": {
+	    "samples": [1.0, ..., 3.9],
+	    "sampleRate": 256
+    },
+    "dtw": 1.2
 }
 ```
 `uid` (long) - user id obtained using `/v0/auth/register`.
@@ -127,7 +135,7 @@ Response:
     ]
     ```
 
-    Failure: empty array `[]`
+    Failure: an empty array `[]`
 
 2. `400 Bad Request` (Missing required parameter)
 
@@ -162,15 +170,17 @@ Response:
             "cid": "0",
             "lid": "0",
             "tid": "1",
-            "pitch": {
-                "samples": [
-                    1,
-                    1.1,
-                    2.8,
-                    3.9,
-                    4.3
-                ],
+            "audio": {
+                "samples": [1.0, ..., 1.3],
                 "sampleRate": 44100
+            },
+            "rawPitch": {
+                "samples": [1.0, ..., 4.7],
+                "sampleRate": 8000
+            },
+            "processedPitch": {
+                "samples": [1.0, ..., 3.9],
+                "sampleRate": 256
             },
             "dtw": 1.2,
             "ts": "2019-12-14T14:09:33.908378Z"
@@ -178,7 +188,7 @@ Response:
     ]
     ```
 
-    Failure: empty array `[]`
+    Failure: an empty array `[]`
 
 2. `400 Bad Request` (Missing required parameter)
 
@@ -196,7 +206,7 @@ Client **SHOULD** be ready to receive unspecified response.
 
 ## Technology stack
 
-* Java 13
+* Java 14
 * Spring Boot [Webflux](https://docs.spring.io/spring/docs/current/spring-framework-reference/web-reactive.html) over [Reactor-Netty](https://github.com/reactor/reactor-netty)
 * [Project-Reactor](https://github.com/reactor/reactor-core)
 * Postgres SQL

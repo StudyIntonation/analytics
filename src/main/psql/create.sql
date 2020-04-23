@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS attempt_report
     FOREIGN KEY (uid) REFERENCES "user" (id)
 );
 
+
 CREATE TABLE IF NOT EXISTS admin_token
 (
     token VARCHAR(32) PRIMARY KEY
