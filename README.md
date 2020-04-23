@@ -13,7 +13,7 @@ Response:
 `200 OK`
 
 `Content-Type: application/json`
-```
+```json
 {
     "status": "ONLINE"
 }
@@ -26,7 +26,7 @@ Response:
 `Content-Type: application/json`
 
 Body:
-```
+```json
 {
     "gender": "MALE",
     "age": 22,
@@ -43,7 +43,7 @@ Response:
 `Content-Type: application/json`
 
 Success:
-```
+```json
 {
     "status": "OK",
     "id": 1
@@ -53,7 +53,7 @@ Success:
 `id` (long) - user id.
 
 Failure:
-```
+```json
 {
     "status": "ERROR"
 }
@@ -66,7 +66,7 @@ Failure:
 `Content-Type: application/json`
 
 Body:
-```
+```json
 {
     "uid": 1,
     "cid": "0",
@@ -98,7 +98,7 @@ Response:
 `Content-Type: application/json`
 
 Success:
-```
+```json
 {
     "status": "OK"
 }
@@ -124,7 +124,7 @@ Response:
     `Content-Type: application/json`
 
     Success:
-    ```
+    ```json
     [
         {
            "id": 1,
@@ -162,7 +162,7 @@ Response:
     `Content-Type: application/json`
 
     Success:
-    ```
+    ```json
     [
         {
             "id": 309,
