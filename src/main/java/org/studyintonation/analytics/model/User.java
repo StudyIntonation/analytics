@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
-import org.studyintonation.analytics.api.rest.Auth;
 
 import java.util.Locale;
 
@@ -17,6 +16,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 @JsonInclude(NON_NULL)
 @JsonAutoDetect(fieldVisibility = ANY)
 
+@SuppressWarnings("unused")
 public class User {
     private User() {
     }

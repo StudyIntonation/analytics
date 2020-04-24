@@ -14,6 +14,7 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
+@SuppressWarnings("unused")
 public final class AttemptReport {
     private AttemptReport() {
     }
