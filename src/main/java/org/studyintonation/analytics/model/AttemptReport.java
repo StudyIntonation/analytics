@@ -56,9 +56,9 @@ public final class AttemptReport {
         @Nullable
         private final Signal audio;
         @Nullable
-        private final Signal rawPith;
+        private final Signal rawPitch;
         @Nullable
-        private final Signal processedPith;
+        private final Signal processedPitch;
         private final float dtw;
         @NotNull
         private final Instant ts;
