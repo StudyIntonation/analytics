@@ -8,8 +8,8 @@ import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.Result;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.Statement;
-import lombok.extern.slf4j.Slf4j;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 import org.studyintonation.analytics.db.transform.SignalTransform;
 import org.studyintonation.analytics.model.AttemptReport;
@@ -54,7 +54,7 @@ public final class PgClient {
                                 .execute())
                         .flatMap(PgClient::rowIdMono),
                 Connection::close
-        );
+        ).doOnError(e -> log.error("PgClient error: ", e));
     }
 
     public Mono<Boolean> addUserAttemptReport(final AttemptReport.Input attemptReport) {
@@ -105,7 +105,7 @@ public final class PgClient {
                                     .map(Integer.valueOf(1)::equals);
                         }),
                 Connection::close
-        );
+        ).doOnError(e -> log.error("PgClient error: ", e));
     }
 
     public Flux<User.Output> getUsers(final String adminToken) {
@@ -129,7 +129,7 @@ public final class PgClient {
                                 requireNonNull(row.get("first_language", String.class))
                         )),
                 Connection::close
-        );
+        ).doOnError(e -> log.error("PgClient error: ", e));
     }
 
     public Flux<AttemptReport.Output> getAttemptReports(final String adminToken,
@@ -169,7 +169,7 @@ public final class PgClient {
                                     );
                                 })),
                 Connection::close
-        );
+        ).doOnError(e -> log.error("PgClient error: ", e));
     }
 
     private static Mono<Long> rowIdMono(final Result result) {
