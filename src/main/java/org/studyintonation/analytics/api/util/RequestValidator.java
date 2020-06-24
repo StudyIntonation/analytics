@@ -1,13 +1,12 @@
 package org.studyintonation.analytics.api.util;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 public final class RequestValidator {
-    public <T> boolean isValid(@NotNull final T o) {
+    public <T> boolean isValid(final T o) {
         for (final var field : o.getClass().getDeclaredFields()) {
             if (field.getAnnotation(OptionalField.class) != null) {
                 continue;

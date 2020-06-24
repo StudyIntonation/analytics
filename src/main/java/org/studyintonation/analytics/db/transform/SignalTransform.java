@@ -2,7 +2,6 @@ package org.studyintonation.analytics.db.transform;
 
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.studyintonation.analytics.model.Signal;
 import reactor.util.function.Tuple2;
@@ -30,13 +29,11 @@ public final class SignalTransform {
         this.targetFormat = new AudioFormat(PCM_FLOAT, (float) targetAudioSampleRate, BITS_IN_SAMPLE, CHANNELS, BYTES_IN_FRAME, (float) targetAudioSampleRate, true);
     }
 
-    @NotNull
-    public Tuple2<ByteBuffer, Integer> transform(@NotNull final Signal signal) {
+    public Tuple2<ByteBuffer, Integer> transform(final Signal signal) {
         return Tuples.of(toByteBuf(signal.getSamples()), signal.getSampleRate());
     }
 
-    @NotNull
-    public Tuple2<ByteBuffer, Integer> transformAudio(@NotNull final Signal signal) {
+    public Tuple2<ByteBuffer, Integer> transformAudio(final Signal signal) {
         if (signal.getSampleRate() <= targetAudioSampleRate) {
             return transform(signal);
         }
@@ -49,8 +46,7 @@ public final class SignalTransform {
         return Tuples.of(resampled, targetAudioSampleRate);
     }
 
-    @NotNull
-    public Signal transform(@NotNull final ByteBuffer byteBuf, @NotNull final Integer sampleRate) {
+    public Signal transform(final ByteBuffer byteBuf, final Integer sampleRate) {
         final var floats = new float[byteBuf.limit() >> 2];
 
         byteBuf.asFloatBuffer().get(floats);
@@ -58,8 +54,7 @@ public final class SignalTransform {
         return new Signal(floats, sampleRate);
     }
 
-    @NotNull
-    private static ByteBuffer toByteBuf(@NotNull final float[] floats) {
+    private static ByteBuffer toByteBuf(final float[] floats) {
         final var byteBuf = ByteBuffer.allocate(floats.length << 2);
         for (final var sample : floats) {
             byteBuf.putFloat(sample);
@@ -69,7 +64,7 @@ public final class SignalTransform {
     }
 
     @Nullable
-    private static ByteBuffer resample(@NotNull final Signal signal, @NotNull final AudioFormat toFormat) {
+    private static ByteBuffer resample(final Signal signal, final AudioFormat toFormat) {
         final int sourceSampleRate = signal.getSampleRate();
         final var sourceFormat = new AudioFormat(PCM_FLOAT, sourceSampleRate, BITS_IN_SAMPLE, CHANNELS, BYTES_IN_FRAME, sourceSampleRate, true);
         if (!AudioSystem.isConversionSupported(toFormat, sourceFormat)) {
@@ -81,11 +76,9 @@ public final class SignalTransform {
 
         try (final var targetAudioInputStream = AudioSystem.getAudioInputStream(toFormat, new AudioInputStream(
                 new ByteBufferBackedInputStream(byteBuf), sourceFormat, sourceSamples.length))) {
-
             return ByteBuffer.wrap(targetAudioInputStream.readAllBytes());
-
         } catch (IOException e) {
-            log.error("downsampling error: ", e);
+            log.error("Downsampling error: ", e);
         }
 
         return null;

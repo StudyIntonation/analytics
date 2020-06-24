@@ -1,10 +1,9 @@
 package org.studyintonation.analytics.api.rest;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.studyintonation.analytics.api.util.Exceptions;
 import org.studyintonation.analytics.api.util.RequestValidator;
 import org.studyintonation.analytics.db.PgClient;
 import org.studyintonation.analytics.model.AttemptReport;
@@ -22,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 
+import static lombok.AccessLevel.PRIVATE;
 import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -42,7 +41,11 @@ public final class Analytics implements Api {
                 .map(SendAttemptReportRequest::getAttempt)
                 .flatMap(pgClient::addUserAttemptReport)
                 .map(success -> success ? SendAttemptReportResponse.OK : SendAttemptReportResponse.ERROR)
-                .onErrorReturn(Exceptions::logging, SendAttemptReportResponse.ERROR);
+                .switchIfEmpty(Mono.just(SendAttemptReportResponse.ERROR))
+                .onErrorReturn(e -> {
+                    log.error("Error: ", e);
+                    return true;
+                }, SendAttemptReportResponse.ERROR);
     }
 
     @GetMapping(path = "/getUsers", produces = APPLICATION_JSON_VALUE)
@@ -72,20 +75,19 @@ public final class Analytics implements Api {
                 });
     }
 
-    @Getter
-    @RequiredArgsConstructor(onConstructor = @__(@JsonCreator))
-    private static final class SendAttemptReportRequest implements Request {
-        @NotNull
-        private final AttemptReport.Input attempt;
+    @Value
+    @RequiredArgsConstructor
+    @NoArgsConstructor(force = true, access = PRIVATE)
+    private static class SendAttemptReportRequest implements Request {
+        AttemptReport.Input attempt;
     }
 
-    @RequiredArgsConstructor
-    private static final class SendAttemptReportResponse implements Response {
+    @Value
+    private static class SendAttemptReportResponse implements Response {
         private static final SendAttemptReportResponse OK = new SendAttemptReportResponse(Status.OK);
         private static final SendAttemptReportResponse ERROR = new SendAttemptReportResponse(Status.ERROR);
 
-        @NotNull
-        private final Status status;
+        Status status;
 
         private enum Status {
             OK,
