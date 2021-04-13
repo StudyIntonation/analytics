@@ -105,7 +105,7 @@ public final class PgClient {
                                     .map(Integer.valueOf(1)::equals);
                         }),
                 Connection::close
-        ).doOnError(e -> log.error("PgClient error: ", e));
+        ).doOnError(e -> log.error("PgClient error during writing reports: ", e));
     }
 
     public Flux<User.Output> getUsers(final String adminToken) {
@@ -169,7 +169,7 @@ public final class PgClient {
                                     );
                                 })),
                 Connection::close
-        ).doOnError(e -> log.error("PgClient error: ", e));
+        ).doOnError(e -> log.error("PgClient error during reading reports: ", e));
     }
 
     private static Mono<Long> rowIdMono(final Result result) {
